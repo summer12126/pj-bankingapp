@@ -1,0 +1,61 @@
+# web-docker-compose.yml
+
+
+services:
+  nginx:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    networks:
+      - app-network
+      - elk-network
+
+    depends_on:
+      - backend
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+
+
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - SERVER_PORT=8080
+      - SPRING_PROFILES_ACTIVE=prod
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+      - elk-network
+    volumes:
+      - ./backend/logs:/logs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+
+
+
+networks:
+  elk-network:
+    name: elk-network     # 명시적 이름 지정
+    driver: bridge
+  app-network:
+    name: app-network     # 명시적 이름 지정
+    driver: bridge
+
+
+
+
+

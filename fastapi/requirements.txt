@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+python-dotenv
+requests
+elasticsearch
+mlflow
+scikit-learn
+pandas
+numpy
+pydantic

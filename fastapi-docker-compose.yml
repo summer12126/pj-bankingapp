@@ -1,0 +1,37 @@
+services:
+  # FastAPI Application
+  fastapi:
+    build: 
+      context: ./fastapi
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTICSEARCH_PORT=9200
+      - SPRINGBOOT_URL=http://backend:8080
+      - MLFLOW_TRACKING_URI=http://mlflow:600
+    volumes:
+      - ./fastapi:/app
+    networks:
+      - elk-network      # ELK 스택과 통신
+      - app-network
+      - afml-network
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+
+networks:
+  elk-network:
+    name: elk-network
+    external: true    # ELK 스택의 네트워크가 이미 존재한다고 가정
+  app-network:
+    name: app-network
+    external: true    # 기존 app 네트워크 사용
+  afml-network:
+    name: afml-network
+    external: true    

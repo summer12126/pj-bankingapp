@@ -1,0 +1,152 @@
+# elk-docker-compose.yml
+
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    container_name: elasticsearch
+    environment:
+      - node.name=elasticsearch
+      - cluster.name=es-docker-cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - ELASTIC_PASSWORD=
+      - network.host=0.0.0.0 
+
+      # Security settings
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+
+      # Memory Settings
+      - bootstrap.memory_lock=true
+      # - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g # 메모리 증가
+
+      - TZ=Asia/Seoul
+
+
+
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    deploy:
+      resources:
+        limits:
+          # memory: 1g
+          memory: 2g
+
+        reservations:
+          memory: 512m
+
+
+    volumes:
+      - /etc/localtime:/etc/localtime:ro  # 시간 동기화를 위한 볼륨 마운트
+      - /usr/share/zoneinfo/Asia/Seoul:/etc/timezone:ro
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - elk-network
+      - afml-network  # Airflow와 통신하기 위해 추가
+      - app-network
+
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.15.0
+    container_name: logstash
+    volumes:
+      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+    ports:
+      - "5044:5044"
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+      TZ: 'Asia/Seoul'
+
+    networks:
+      - elk-network
+      - afml-network  # Airflow와 통신하기 위해 추가
+      - app-network
+    depends_on:
+      - elasticsearch
+
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.15.0
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_USERNAME=
+      - ELASTICSEARCH_PASSWORD=
+      - SERVER_HOST=0.0.0.0
+
+      # TaskManager 설정 추가
+      - XPACK_TASK_MANAGER_ENABLED=true
+      - XPACK_TASK_MANAGER_MAX_WORKERS=1
+      - XPACK_TASK_MANAGER_POLL_INTERVAL=3000
+      # 메모리 설정
+      - NODE_OPTIONS=--max-old-space-size=512
+
+      - TZ=Asia/Seoul
+
+
+    networks:
+      - elk-network
+      - afml-network  # Airflow와 통신하기 위해 추가
+      - app-network
+
+    depends_on:
+      - elasticsearch
+
+
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.15.0
+    container_name: filebeat
+    user: root
+    volumes:
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./backend/logs:/logs:ro  # 로그 디렉토리 마운트
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: filebeat -e --strict.perms=false
+    networks:
+      - elk-network
+      - afml-network  # Airflow와 통신하기 위해 추가
+      - app-network
+    depends_on:
+      - elasticsearch
+      - logstash
+
+
+networks:
+  elk-network:
+    name: elk-network     # 명시적 이름 지정
+    driver: bridge
+    external: true
+
+  app-network:
+    name: app-network     # 명시적 이름 지정
+    driver: bridge
+    external: true
+
+  afml-network:
+    driver: bridge
+    name: afml-network
+    external: true
+
+
+
+volumes:
+  elasticsearch-data:
+    driver: local
+
+

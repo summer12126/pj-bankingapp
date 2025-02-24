@@ -1,0 +1,6 @@
+# logstash/config/logstash.yml
+http.host: "0.0.0.0"
+monitoring.elasticsearch.hosts: ["http://elasticsearch:9200"]
+path.config: /usr/share/logstash/pipeline
+path.logs: /var/log/logstash
+xpack.monitoring.enabled: false

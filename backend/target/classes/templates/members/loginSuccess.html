@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:sec="">
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+<body>
+    <h1>로그인 성공!!</h1>
+    <hr>
+    <p>
+        <span th:text="${userId}"></span>님 환영합니다~
+        <span th:text="${session.userId2}"></span>님 세션 환영합니다~
+    </p>
+    <a th:href="@{'/'}">메인으로 이동</a>
+</body>
+</html>
